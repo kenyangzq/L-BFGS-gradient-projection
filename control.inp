@@ -1,0 +1,13 @@
+#The format of this is very important, be sure to type with spaces: "dim = 3"   Innerradius is only important if you are doing shell
+#Also, if a file of points is being used, set file = 1, and replace "numpts = 3000" with "infile = yourfile" (including the file extension)
+sphere
+s = 2
+dim = 3
+c = 20
+file = 0
+numpts = 1600
+numits = 300
+partitionnum = 10
+maxNbrs = 200
+outfile = jun13test1600-
+innerradius = 0.5
