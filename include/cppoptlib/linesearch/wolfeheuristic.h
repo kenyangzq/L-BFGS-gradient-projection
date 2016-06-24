@@ -38,9 +38,12 @@ namespace cppoptlib {
             T alpha = alpha_init;
             T phi = 0;
             Vector<T> x_candidate (x.rows());
+            Vector<T> x_min (x.rows());
+            Vector<T> grad2(x.rows());
             
             // 200 guesses
             for(size_t iter = 0; iter < 20; ++iter) {
+                printf("alpha: %f\t", alpha);
                 
                 // new guess for phi(alpha)
                 x_candidate = x + alpha * searchDir;
@@ -49,19 +52,18 @@ namespace cppoptlib {
             
                 // decrease condition invalid --> shrink interval
                 if (phi > phi0 + 0.0001 * alpha * phi0_dash) {
-                    alpha *= 0.5;
+                    alpha *= 0.4;
                     
                 } else {
     
                     // valid decrease --> test strong wolfe condition
-                    Vector<T> grad2(x.rows());
                     objFunc.gradient(x_candidate, grad2);
                     const T phi_dash = searchDir.dot(grad2);
     
                     // curvature condition invalid ?
                     if (phi_dash < 0.9 * phi0_dash) {
                         // increase interval
-                        alpha *= 4;
+                        alpha *= 3; 
                     } else if (phi < phi0){
                         // both condition are valid --> we are happy
                         x0 = x_candidate;

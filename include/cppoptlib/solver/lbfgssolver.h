@@ -68,18 +68,26 @@ class LbfgsSolver : public ISolver<T, 1> {
         std::ofstream outputfile;
     
         const size_t DIM = x0.rows();
+        double minimum_energy;
+        
+        
+        
 
         Matrix<T> sVector = Matrix<T>::Zero(DIM, m);
         Matrix<T> yVector = Matrix<T>::Zero(DIM, m);
 
         Vector<T> alpha = Vector<T>::Zero(m);
-        Vector<T> grad(DIM), q(DIM), grad_old(DIM), s(DIM), y(DIM);
+        Vector<T> grad(DIM), q(DIM), grad_old(DIM), s(DIM), y(DIM), minimum_x(DIM);
         objFunc.gradient(x0, grad);
         Vector<T> x_old = x0;
 
         size_t iter = 0;
         double H0k = 1;
+        double alpha_init = 1;
+        double md;
+        double mg;
         int tmp = numIteration/numFile;
+        
 
         this->m_current.reset();
         do {
@@ -122,7 +130,11 @@ class LbfgsSolver : public ISolver<T, 1> {
             // any issues with the descent direction ?
             double descent = -grad.dot(q);
             
-            double alpha_init =  1.0 / grad.norm();
+            if (iter == 0) {
+                alpha_init =  1.0 / grad.norm();
+            }
+//            double alpha_init = 1.0;
+            
             
             if (descent > -0.0001 * relativeEpsilon) {
                 q = -1 * grad;
@@ -160,12 +172,22 @@ class LbfgsSolver : public ISolver<T, 1> {
                 yVector.rightCols(1) = y;
             }
             
+            // update alpha_init
+            objFunc.findInitial(md, mg);
+            alpha_init = 0.5 * 1 / mg;
+            printf("md: %f\n" , md);
+            printf("mg: %f\n" , mg);
+            printf("alpha_init: %f\n" , alpha_init);
             
             
             // update the scaling factor
             double dot =  static_cast<double>(y.dot(y));
-            if (dot <= 1e-7)
+            if (dot <= 1e-7) {
+//                minimum_energy = objFunc.value(x0);
+//                minimum_x = x0;
+//                
                 break;
+            }
             else
                 H0k = y.dot(s) / dot;
             
@@ -199,6 +221,8 @@ class LbfgsSolver : public ISolver<T, 1> {
             this->m_status = checkConvergence(this->m_stop, this->m_current);
         } while (this->m_status == Status::Continue && iter < numIteration);
 
+        // x0 = minimum_x;
+        
     }
 
 };

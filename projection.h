@@ -44,13 +44,15 @@ class minimize : public cppoptlib::Problem<double> {
     int numpts;
     cppoptlib::Matrix<double> Cubes;
     cppoptlib::Matrix<double> pts3D;
+    double minimal_distance;
+    double minimal_gradient;
     
     
 public:
     
     minimize(double r, double s_value, int d, int n, int c, int c_cube, int max_neighbor)
     :cutoff_radius(r), s(s_value), cubes_per_side(c), dim(d), numpts(n), Cubes(max_neighbor+1, c_cube),
-    pts3D(dim, numpts){};
+    pts3D(dim, numpts), minimal_distance(0), minimal_gradient(0){};
     
     
     
@@ -98,6 +100,7 @@ public:
         cppoptlib::Vector<double> temp_sum(dim), temp(dim);
         temp_sum.setZero();
         BuildIndex(x);
+        double mgradient = 1000000;
         
         
         for (int index_cube = 0; index_cube < Cubes.cols(); ++index_cube)
@@ -131,10 +134,13 @@ public:
                 }
                 
                 grad.segment(point_index*dim, dim) = temp_sum.transpose();
+                double tmp = temp_sum.norm();
+                if (tmp < mgradient)
+                    mgradient = tmp;
             }
         }
 
-        
+        minimal_gradient = mgradient;
     }
     
     
@@ -157,6 +163,13 @@ public:
     
     
 ////// all the helping method in the class start here ///////
+    
+    
+    
+    void findInitial(double & mdistance, double & mgradient){
+        mdistance = minimal_distance;
+        mgradient = minimal_gradient;
+    }
     
     // x now is a 3d points vectors
     void BuildIndex(const cppoptlib::Vector<double> & x){
@@ -231,6 +244,9 @@ public:
     double truncatedEnergy(const cppoptlib::Vector<double> & V,
                         const cppoptlib::Vector<int> & neighbors, const int index){
         double energy = 0;
+        double mdistance = 2;
+        
+        
         for (int i = 0; i < neighbors.size(); ++i)
         {
             int tmp = neighbors(i); // goes over all neighbor cubes
@@ -242,9 +258,14 @@ public:
                     double distance = dist(V.segment(index*dim, dim), V.segment(point_index*dim, dim));
                     if (point_index != index && distance < cutoff_radius)
                         energy += pow(distance, -s)*cutoff(distance, cutoff_radius);
+                    if (distance < mdistance) {
+                        mdistance = distance;
+                    }
                 }
             }
         }
+        minimal_distance = mdistance;
+        
         return energy;
     }
 

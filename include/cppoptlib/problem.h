@@ -97,6 +97,10 @@ class Problem {
   }
     
     virtual void pullBack(cppoptlib::Vector<double> &x){}
+    
+    virtual void findInitial(double & mdistance, double & mgradient){}
+    
+    
 
   virtual bool checkGradient(const Vector<T> & x, int accuracy = 3) {
     // TODO: check if derived class exists:

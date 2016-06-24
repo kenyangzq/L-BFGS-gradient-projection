@@ -39,6 +39,8 @@ public:
         T phi0_dash = searchDir.dot(grad);
         
         T alpha = alpha_init;
+        
+        
         T phi = 0;
         Vector<T> x_candidate (x.rows());
         Vector<T> x_min (x.rows());
@@ -50,6 +52,8 @@ public:
         // 200 guesses
         for(size_t iter = 0; iter < 10; ++iter) {
             
+            printf("alpha: %f\t", alpha);
+            
             // new guess for phi(alpha)
             x_candidate = x + alpha * searchDir;
             objFunc.pullBack(x_candidate);
@@ -58,9 +62,12 @@ public:
             
             // decrease condition invalid --> shrink interval
             if (phi > phi0 + 0.0001 * alpha * phi0_dash) {
-                alpha *= 0.3;
+                alpha *= 0.7;
                 
             } else {
+                
+                
+//                alpha *= 3;
                 
                 // valid decrease --> test strong wolfe condition
                 
@@ -70,7 +77,7 @@ public:
                 // curvature condition invalid ?
                 if (phi_dash < 0.9 * phi0_dash) {
                     // increase interval
-                    alpha *= 4.5;
+                    alpha *= 3;
                 } else if (phi < phi0){
                     // both condition are valid --> we are happy
                     x0 = x_candidate;

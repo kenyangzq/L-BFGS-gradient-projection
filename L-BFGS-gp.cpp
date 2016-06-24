@@ -177,20 +177,32 @@ void FullGradient(const cppoptlib::Vector<double> & all_angles, const double & s
 
 double Energy(const cppoptlib::Vector<double> & V, const double s_power, const int dim)
 {
-    // V contains spherical coordinates
-    double e = 0;
-    for (int i=0; i<V.size()/dim; ++i)
-    {
-        for (int j=0; j<i; ++j)
+    if (dim == 2) {
+        // V contains spherical coordinates
+        double e = 0;
+        for (int i=0; i<V.size()/dim; ++i)
         {
-            e += pow(dist_squared(V.segment<2>(i*dim), V.segment<2>(j*dim)), -s_power/2.0);
+            for (int j=0; j<i; ++j)
+            {
+                e += pow(dist_squared(V.segment<2>(i*dim), V.segment<2>(j*dim)), -s_power/2.0);
+            }
+        }
+        return 2.0 * e;
+    }
+    double e = 0;
+    for (int i = 0 ; i < V.size()/dim; ++i) {
+        for (int j = 0; j < i; ++j) {
+            e += pow(dist(V.segment(i*dim, dim), V.segment(j*dim, dim)), -s_power);
         }
     }
-    return 2.0 * e;
+    return 2 * e;
+    
 }
 
 
-void writeFile (ofstream & outputfile, string name, cppoptlib::Vector<double> V, int dim){
+// write file methods
+
+void writeFileAngle (ofstream & outputfile, string name, cppoptlib::Vector<double> V, int dim){
     outputfile.open(name.c_str());
     if (outputfile.fail()) {
         cout << "Error writing output data file" << endl;
@@ -209,9 +221,29 @@ void writeFile (ofstream & outputfile, string name, cppoptlib::Vector<double> V,
         To3D(tmp, tmp2);
         outputfile << tmp2(0) << "\t" << tmp2(1) << "\t" << tmp2(2) << "\n";
     }
+    outputfile.close();
 }
 
 
+
+void writeFile3D (ofstream & outputfile, string name, cppoptlib::Vector<double> V, int dim){
+    outputfile.open(name.c_str());
+    if (outputfile.fail()) {
+        cout << "Error writing output data file" << endl;
+        //        exit(1);
+    }
+    
+    outputfile << setprecision(6);
+    outputfile << fixed;
+    
+    cppoptlib::Vector<double> tmp(dim);
+    
+    for (int i =0; i < V.rows()/dim; i++) {
+        tmp = V.segment(i*dim, dim);
+        outputfile << tmp(0) << "\t" << tmp(1) << "\t" << tmp(2) << "\n";
+    }
+    outputfile.close();
+}
 
 
 
@@ -226,11 +258,13 @@ class minimizeEnergy : public cppoptlib::Problem<double> {
     int numpts;
     cppoptlib::Matrix<double> Cubes;
     cppoptlib::Matrix<double> pts3D;
+    double minimal_distance;
+    double minimal_gradient;
     
     
 public:
     minimizeEnergy(double r, double s_value, int d, int n, int c, int c_cube, int max_neighbor)
-    :cutoff_radius(r), s(s_value), cubes_per_side(c), dim(d), numpts(n), Cubes(max_neighbor+1, c_cube), pts3D(dim, numpts){};
+    :cutoff_radius(r), s(s_value), cubes_per_side(c), dim(d), numpts(n), Cubes(max_neighbor+1, c_cube), pts3D(dim, numpts), minimal_distance(0), minimal_gradient(0){};
     
     
     double TruncatedEnergy(const cppoptlib::Vector<double> & V, const cppoptlib::Vector<int> & neighbors, const int index);
@@ -244,6 +278,13 @@ public:
     void BuildIndex(const cppoptlib::Vector<double> &x);
     
     void pullBack(cppoptlib::Vector<double> &x){}
+    
+    void findInitial(double & mdistance, double & mgradient){
+        mdistance = minimal_distance;
+        mgradient = minimal_gradient;
+        
+    }
+
     
     double value(const cppoptlib::Vector<double> &x) 
     {
@@ -284,6 +325,8 @@ public:
         cppoptlib::Vector<double> temp_sum(dim), temp(dim);
         cppoptlib::Matrix<double> temp_jacobian(dim, dim_angle);
         temp_sum.setZero();
+        double mgradient = 1000000;
+        
         BuildIndex(x);
         // find the neighbor_cube_indices for each cubes and calculate the energy.
         for (int index_cube = 0; index_cube < Cubes.cols(); ++index_cube)  
@@ -319,9 +362,13 @@ public:
                 
                 ComputeJacobian(x(point_index*dim_angle+0), x(point_index*dim_angle+1), temp_jacobian);
                 grad.segment(point_index*dim_angle, dim_angle) = temp_sum.transpose() * temp_jacobian;
+                double tmp = temp_sum.norm();
+                if (tmp < mgradient)
+                    mgradient = tmp;
+                
             }
         }
-
+        minimal_gradient = mgradient;
     }
 };
 
@@ -329,6 +376,7 @@ public:
 double minimizeEnergy::TruncatedEnergy(const cppoptlib::Vector<double> & V,
                        const cppoptlib::Vector<int> & neighbors, const int index){
     double energy = 0;
+    double mdistance  = 0;
     for (int i = 0; i < neighbors.size(); ++i) 
     {
         int tmp = neighbors(i); // goes over all neighbor cubes
@@ -340,9 +388,13 @@ double minimizeEnergy::TruncatedEnergy(const cppoptlib::Vector<double> & V,
                 double distance = sqrt(dist_squared(V.segment<2>(index*2), V.segment(point_index*2, 2)));
                 if (point_index != index && distance < cutoff_radius)
                     energy += pow(distance, -s)*cutoff(distance, cutoff_radius);
+                if (distance < mdistance) {
+                    mdistance = distance;
+                }
             }
         }
     }
+    minimal_distance = mdistance;
     return energy;
 }
 
@@ -468,22 +520,27 @@ int main() {
     solver.setFileName(filename);
     
     
+//    solver.minimize(g, W);
+//    cout << "g finished \n";
+
     solver.minimize(f, V);
     cout << "f finished \n\n\n";
     
-    solver.minimize(g, W);
-    
-    cout << "g finished \n";
+
     
     
     
     
-    cout << "Energy by g: " << g(W) << endl;
-    cout << "Energy by f " << f(V) << endl;
+    g(W);
+    cout << "Full energy by g: " << Energy(W, s, dim) << endl;
+    
+    f(V);
+    cout << "Full energy by f: " << Energy(V, s, dim-1) << endl;
     
     
+//    writeFile3D (outputfile, filename+"bfgs-gp.txt", W, dim);
     
-//    writeFile(outputfile, filename+"bfgs.txt", V, dim);
+//    writeFileAngle (outputfile, filename+"bfgs.txt", V, dim);
     return 0;
 }
 
