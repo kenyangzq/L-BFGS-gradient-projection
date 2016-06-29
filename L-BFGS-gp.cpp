@@ -481,7 +481,7 @@ int main() {
     
     
     radius = c*pow(numpts,-1.0/(dim-1));
-    cubes_per_side = ceil(2/radius)+2;
+    cubes_per_side = ceil(2/radius);
     
     inputfile.close();
     openFile(pointfile, filename+"final.txt");
@@ -508,7 +508,7 @@ int main() {
     cout << "Energy without cutoff:      " << Energy(V, s, dim-1) << endl;
     cout << "Energy with cutoff:         " << f(V) << endl;
 
-    minimize g(radius, s, dim, numpts, cubes_per_side, pow(cubes_per_side, dim), max_neighbor);
+    minimize g(radius, s, dim, numpts, cubes_per_side+2, pow(cubes_per_side+2, dim), max_neighbor);
     cout << "Energy with cutoff by g:    " << g(W) << endl;
     
     
@@ -520,11 +520,11 @@ int main() {
     solver.setFileName(filename);
     
     
-//    solver.minimize(g, W);
-//    cout << "g finished \n";
+    solver.minimize(g, W);
+    cout << "g finished \n";
 
-    solver.minimize(f, V);
-    cout << "f finished \n\n\n";
+//    solver.minimize(f, V);
+//    cout << "f finished \n\n\n";
     
 
     

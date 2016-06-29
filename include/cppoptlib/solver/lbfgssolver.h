@@ -68,7 +68,8 @@ class LbfgsSolver : public ISolver<T, 1> {
         std::ofstream outputfile;
     
         const size_t DIM = x0.rows();
-        double minimum_energy;
+        double minimum_energy = objFunc.value(x0);
+        printf("\n\n\n");
         
         
         
@@ -130,10 +131,10 @@ class LbfgsSolver : public ISolver<T, 1> {
             // any issues with the descent direction ?
             double descent = -grad.dot(q);
             
-            if (iter == 0) {
+//            if (iter == 0) {
                 alpha_init =  1.0 / grad.norm();
-            }
-//            double alpha_init = 1.0;
+//            }
+
             
             
             if (descent > -0.0001 * relativeEpsilon) {
@@ -141,20 +142,16 @@ class LbfgsSolver : public ISolver<T, 1> {
                 iter = 0;
                 alpha_init = 1.0;
             }
-//            if (iter == 1178) {
-//                std::cout << x0.transpose() << std::endl;
-//                std::cout << q.transpose() << std::endl;
-//            }
+            
+            printf("alpha_init: %f\n" , alpha_init);
 
             // find steplength
-            WolfeHeuristic<T, decltype(objFunc), 1>::linesearch(x0, -q,  objFunc, alpha_init) ;
-            // update guess
-            
-            
-//            x0 = x0 - rate * q;
+            Armijo<T, decltype(objFunc), 1>::linesearch(x0, -q,  objFunc, alpha_init) ;
             
             
 
+            
+        
             grad_old = grad;
             objFunc.gradient(x0, grad);
 
@@ -172,25 +169,31 @@ class LbfgsSolver : public ISolver<T, 1> {
                 yVector.rightCols(1) = y;
             }
             
-            // update alpha_init
-            objFunc.findInitial(md, mg);
-            alpha_init = 0.5 * 1 / mg;
-            printf("md: %f\n" , md);
-            printf("mg: %f\n" , mg);
-            printf("alpha_init: %f\n" , alpha_init);
             
             
-            // update the scaling factor
+            
+            
+            
             double dot =  static_cast<double>(y.dot(y));
             if (dot <= 1e-7) {
-//                minimum_energy = objFunc.value(x0);
-//                minimum_x = x0;
-//                
                 break;
+//                double pp = objFunc.value(x0);
+//                if (pp < minimum_energy) {
+//                    minimum_energy = pp;
+//                    minimum_x = x0;
+//                }
+//                printf("reach one local minimum, energy: %f\n\n\n", pp);
+//                alpha_init = 1/grad.norm();
+//                H0k = 1;
             }
-            else
+            else{
+                // update the scaling factor
                 H0k = y.dot(s) / dot;
-            
+                
+                // update alpha_init
+                objFunc.findInitial(md, mg);
+                alpha_init = 0.005 / mg;
+            }
             
             
             x_old = x0;
@@ -221,7 +224,10 @@ class LbfgsSolver : public ISolver<T, 1> {
             this->m_status = checkConvergence(this->m_stop, this->m_current);
         } while (this->m_status == Status::Continue && iter < numIteration);
 
-        // x0 = minimum_x;
+        if (minimum_x.norm() > 1e-5) {
+            x0 = minimum_x;
+        }
+        
         
     }
 

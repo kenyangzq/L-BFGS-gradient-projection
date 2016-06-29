@@ -1,6 +1,7 @@
 
 #include <iomanip>
 #include <fstream>
+#include <cmath>
 #include <Eigen/Dense>
 #include <iostream>
 #include "meta.h"
@@ -97,7 +98,7 @@ public:
         int max_neighbor = Cubes.rows();
         double distance;
         cppoptlib::Vector<int> neighbor_cube_indices (pow(3, dim));
-        cppoptlib::Vector<double> temp_sum(dim), temp(dim);
+        cppoptlib::Vector<double> temp_sum(dim), temp(dim), temp_point(dim);
         temp_sum.setZero();
         BuildIndex(x);
         double mgradient = 1000000;
@@ -113,6 +114,8 @@ public:
             {
                 temp_sum.setZero();
                 int point_index = Cubes(j, index_cube);
+                temp_point = pts3D.col(point_index);
+                
                 for (int k = 0; k < neighbor_cube_indices.size(); ++k)
                 {
                     int tmp = neighbor_cube_indices(k);
@@ -122,7 +125,7 @@ public:
                         for (int l = 1; l <= points_in_other_cube; l++)
                         {
                             int other_point_index = Cubes(l, tmp);
-                            temp = pts3D.col(point_index) - pts3D.col(other_point_index);
+                            temp = temp_point - pts3D.col(other_point_index);
                             distance = sqrt(temp.dot(temp));
                             if (other_point_index != point_index && distance < cutoff_radius)
                             {
@@ -132,6 +135,11 @@ public:
                         }
                     }
                 }
+                // project the gradient vector onto the sphere
+                temp_point = temp_sum.dot(temp_point)*temp_point;
+                temp_sum -= temp_point;
+                
+                
                 
                 grad.segment(point_index*dim, dim) = temp_sum.transpose();
                 double tmp = temp_sum.norm();

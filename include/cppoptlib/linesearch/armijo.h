@@ -50,7 +50,7 @@ public:
         
         
         // 200 guesses
-        for(size_t iter = 0; iter < 10; ++iter) {
+        for(size_t iter = 0; iter < 30; ++iter) {
             
             printf("alpha: %f\t", alpha);
             
@@ -62,7 +62,7 @@ public:
             
             // decrease condition invalid --> shrink interval
             if (phi > phi0 + 0.0001 * alpha * phi0_dash) {
-                alpha *= 0.7;
+                alpha *= 0.4;
                 
             } else {
                 
