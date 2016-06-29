@@ -52,6 +52,8 @@ class LbfgsSolver : public ISolver<T, 1> {
     
     size_t m = 5;
     
+    size_t dim = 3;
+    
     std::string filename = "config";
     
     void setHistorySize(const size_t hs) { m = hs; }
@@ -61,6 +63,8 @@ class LbfgsSolver : public ISolver<T, 1> {
     void setNumIteration(const size_t i) { numIteration = i; }
     
     void setFileName(const std::string fn) { filename = fn; }
+    
+    void setDim(const size_t d) { dim = d; }
     
     
     void minimize(Problem<T> &objFunc, Vector<T> & x0) {
@@ -72,7 +76,7 @@ class LbfgsSolver : public ISolver<T, 1> {
         printf("\n\n\n");
         
         
-        
+        const size_t NUMPTS = DIM / dim;
 
         Matrix<T> sVector = Matrix<T>::Zero(DIM, m);
         Matrix<T> yVector = Matrix<T>::Zero(DIM, m);
@@ -131,9 +135,9 @@ class LbfgsSolver : public ISolver<T, 1> {
             // any issues with the descent direction ?
             double descent = -grad.dot(q);
             
-//            if (iter == 0) {
+//            if (iter == 0)
                 alpha_init =  1.0 / grad.norm();
-//            }
+            
 
             
             
@@ -192,7 +196,7 @@ class LbfgsSolver : public ISolver<T, 1> {
                 
                 // update alpha_init
                 objFunc.findInitial(md, mg);
-                alpha_init = 0.005 / mg;
+                alpha_init = 0.5 / (mg*NUMPTS);
             }
             
             

@@ -8,6 +8,6 @@ file = 0
 numpts = 500
 numits = 300
 partitionnum = 10
-maxNbrs = 200
+maxNbrs = 500
 outfile = jun7test500-
 innerradius = 0.5

@@ -518,6 +518,7 @@ int main() {
     solver.setNumFile(numFile);
     solver.setNumIteration(1000);
     solver.setFileName(filename);
+    solver.setDim(dim);
     
     
     solver.minimize(g, W);
